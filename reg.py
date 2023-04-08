@@ -1,5 +1,5 @@
 import pandas as pd
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import datetime
 import numpy as np
@@ -30,9 +30,9 @@ def main(con_str, roll_days, stock_num, main_var):
     var.extend(['inc', 'ebi'])
     var2 = main_var.copy()
     var2.extend(['incs', 'ebis'])
-    data = pd.read_csv(r'su.csv')
+    data = pd.read_csv(r'/Users/lvfreud/Documents/python/factor_data/su.csv')
     data['ym'] = pd.to_datetime(data['ym'])
-    concept = pd.read_excel('concept.xlsx')
+    concept = pd.read_excel('/Users/lvfreud/Documents/python/factor_data/concept.xlsx')
     concept = concept.drop(index=concept.index.values[-4:])
     concept = concept.rename(
         columns={'所属概念板块\n[交易日期] 最新收盘日': 'cc', '所属热门概念\n[交易日期] 最新收盘日': 'nc'})
@@ -71,14 +71,14 @@ def main(con_str, roll_days, stock_num, main_var):
     su = data  # 原始收益率序列
     de = datetime.timedelta(days=300)
     df = df[df['stm'] > de]  # 筛选成立300天的企业
-    re = df.sort_values(by=['r_p'], ascending=[False]).reset_index(drop=True)
-    re = re.groupby(['ym']).head(stock_num)
-    re = re.sort_values(by=['ym'], ascending=[True]).reset_index(drop=True)  # 选股序列
-    da = re['ym'].drop_duplicates()  # 获取时间序列
-    re['w'] = np.zeros(len(re))
+    select_arr = df.sort_values(by=['r_p'], ascending=[False]).reset_index(drop=True)
+    select_arr = select_arr.groupby(['ym']).head(stock_num)
+    select_arr = select_arr.sort_values(by=['ym'], ascending=[True]).reset_index(drop=True)  # 选股序列
+    da = select_arr['ym'].drop_duplicates()  # 获取时间序列
+    select_arr['w'] = np.zeros(len(select_arr))
     for i in da:
-        u = re[re['ym'] == i]['r_p']
-        idd = re[re['ym'] == i]['Stkcd']
+        u = select_arr[select_arr['ym'] == i]['r_p']
+        idd = select_arr[select_arr['ym'] == i]['Stkcd']
         idd = idd.reset_index(drop=True)
         cor = su[su['Stkcd'] == idd[0]][['ym', 'r_su']]
         for j in idd:  # 获取收益率矩阵
@@ -96,11 +96,11 @@ def main(con_str, roll_days, stock_num, main_var):
         w = w * (w > 0)
         if w.sum() != 0:
             w = w / w.sum()
-        re.loc[re['ym'] == i, 'w'] = w
-    re['r'] = re['r_f'] * re['w']
-    syl = re[['ym', 'r']].groupby(['ym']).sum()
+        select_arr.loc[select_arr['ym'] == i, 'w'] = w
+    select_arr['r'] = select_arr['r_f'] * select_arr['w']
+    syl = select_arr[['ym', 'r']].groupby(['ym']).sum()
     syl = syl.cumsum()
-    results = re[['Stkcd', 'w']].iloc[-stock_num:, :]
+    results = select_arr[['Stkcd', 'w']].iloc[-stock_num:, :]
     results['板块'] = con_str
     results['r'] = syl.iloc[-1].values[0]
     return results
