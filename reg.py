@@ -26,25 +26,32 @@ def roll_reg(roll_data):  # rolling_regress
     return dp, p, r2
 
 
-def main(con_str, roll_days, stock_num, main_var):
+def main(gn, con_str, roll_days, stock_num, main_var):
     global var, var2
     var = main_var.copy()
     var.extend(['inc', 'ebi'])
     var2 = main_var.copy()
     var2.extend(['incs', 'ebis'])
     data = pd.read_csv(data_save + 'su.csv')
-    concept = pd.read_excel(data_save + 'concept.xlsx')
     data['ym'] = pd.to_datetime(data['ym'])
-    concept = concept.drop(index=concept.index.values[-4:])
-    concept = concept.rename(
-        columns={'所属概念板块\n[交易日期] 最新收盘日': 'cc', '所属热门概念\n[交易日期] 最新收盘日': 'nc'})
-    concept['Stkcd'] = concept['证券代码'].str[:6]
-    concept['Stkcd'] = concept['Stkcd'].astype('int')
-    concept['cp'] = concept['cc'].str.contains(con_str)
-    concept = concept.drop(columns=['证券代码', '证券简称', 'cc', 'nc'])
-    data = data.merge(concept, how='left', on='Stkcd')
-    data = data.drop(data[data['cp'] != 1].index)  # 筛选行业
-    data = data.dropna(subset=var)
+
+    # WinD
+    concept = pd.read_excel(data_save + 'concept.xlsx', sheet_name=0)
+    concept['Stkcd'] = concept['证券代码'].str[:6].astype('int')
+    if gn:
+        concept['cp'] = concept['行业'].str.contains(con_str)
+    else:
+        concept['cp'] = concept['所属概念板块'].str.contains(con_str)
+
+    # iFinD
+    # concept = pd.read_csv(data_save + '概念.csv')
+    # concept['Stkcd'] = concept['股票代码'].str[:6].astype('int')
+    # concept['cp'] = concept['所属概念'].str.contains(con_str)
+
+    data = data.merge(concept[['Stkcd', 'cp', '证券简称']], how='left', on='Stkcd')
+    data = data[data['cp'] == 1]  # 筛选行业
+    data = data[~data['证券简称'].str.contains('ST')]
+    data = data.fillna(0)
     date = data['ym']
     date = date.drop_duplicates()
     y_sum = pd.DataFrame()
@@ -107,13 +114,18 @@ def main(con_str, roll_days, stock_num, main_var):
 
 
 if __name__ == '__main__':
-    re = [main('光伏', 300, 4, ['to_sd', 'ret_m', 'r_sd', 'r_m', 'lnd_m']),
-          main('芯片', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_m', 'lnd_m']),
-          main('半导体', 300, 4, ['to_sd', 'ret_m', 'r_sd', 'r_v', 'lnd_m']),
-          main('数字经济', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_v', 'lnd_m']),
-          main('钠离子电池', 300, 4, ['to_sd', 'ret_m', 'r_sd', 'r_su', 'lnd_m']),
-          main('传媒', 400, 4, ['to_sd', 'ret_m', 'r_sd', 'r_su', 'lnd_m']),
-          main('新能源', 300, 4, ['to_sd', 'ret_m', 'r_su', 'r_v', 'lnd_m']),
-          main('饮料', 200, 4, ['to_sd', 'ret_m', 'r_v', 'lnd_m'])]
+    re = [main(0, '芯片', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_m', 'lnd_m']),
+          main(0, '数字经济', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_v', 'lnd_m']),
+          main(0, '传媒', 400, 4, ['to_sd', 'ret_m', 'r_sd', 'r_su', 'lnd_m']),
+          main(0, '钠离子电池', 300, 4, ['to_sd', 'ret_m', 'r_sd', 'r_su', 'lnd_m']),
+          main(1, '半导体', 200, 4, ['to_sd', 'ret_m', 'r_m', 'r_v', 'lnd_m']),
+          main(1, '酒类', 200, 4, ['to_sd', 'ret_m', 'r_v', 'lnd_m']),
+          main(1, '医疗保健', 200, 4, ['to_sd', 'ret_m', 'r_v', 'lnd_m']),
+          main(1, '航空与物流', 200, 4, ['to_sd', 'ret_m', 'r_v', 'lnd_m']),
+          main(1, '零售', 200, 4, ['to_sd', 'ret_m', 'r_v', 'lnd_m']),
+          main(1, '化肥农药', 200, 4, ['to_sd', 'ret_m', 'r_v', 'lnd_m']),
+          main(1, '通信设备', 200, 4, ['to_sd', 'ret_m', 'r_v', 'lnd_m']),
+          main(1, '多元金融', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_v', 'lnd_m']),
+          ]
     re = pd.concat(re)
     re.to_excel(output + 'select.xlsx', index=False)

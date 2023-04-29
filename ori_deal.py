@@ -7,7 +7,7 @@ file_path_new = file_path + "new/"
 trd_dalyr_file = "TRD_Dalyr.csv"
 stk_mkt_dalyr_file = "STK_MKT_DALYR.csv"
 fs_comins_file = "FS_Comins.csv"
-
+N = 10000
 # Import data
 clo = pd.read_csv(file_path_new + trd_dalyr_file, dtype={'Stkcd': 'str'}, parse_dates=['Trddt'])
 ret = pd.read_csv(file_path_new + stk_mkt_dalyr_file, dtype={'Symbol': 'str'}, parse_dates=['TradingDate'])
@@ -31,7 +31,7 @@ df_monthly = clo.groupby([clo['stkcd'], pd.Grouper(key='trddt', freq='M')]).agg(
     }).reset_index()
 df_monthly = df_monthly.rename(columns={'clsprc': 'r_su', 'dsmvtll': 'lnd', 'trddt': 'ym'})
 df_monthly['r_sd'] = clo.groupby([clo['stkcd'], pd.Grouper(key='trddt', freq='M')])['clsprc'].std().reset_index(drop=True)
-df_monthly['r_m'] = df_monthly.groupby('stkcd')['r_su'].rolling(window=3, min_periods=3).sum().reset_index(drop=True)
+df_monthly['r_m'] = df_monthly.groupby('stkcd')['r_su'].rolling(window=3, min_periods=1).sum().reset_index(drop=True)
 df_monthly['r_m24'] = df_monthly.groupby('stkcd')['r_su'].rolling(window=24, min_periods=3).mean().reset_index(drop=True)
 df_monthly['r_v'] = df_monthly['r_su']/df_monthly['r_m24']
 df_monthly = df_monthly[['stkcd', 'ym', 'r_su', 'r_sd', 'lnd', 'r_m', 'r_v']]
