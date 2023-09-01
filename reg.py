@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+import re
 
 var = []
 var2 = []
@@ -114,6 +115,16 @@ def main(gn, con_str, roll_days, stock_num, main_var):
 
 
 if __name__ == '__main__':
+    cc = pd.read_excel(data_save + 'concept.xlsx', sheet_name=0)
+    cc['Stkcd'] = cc['证券代码'].str[:6].astype('int')
+    # cc_sum = []
+    # for i in cc['所属概念板块'].to_list():
+    #     s = re.split(";", str(i))
+    #     for j in s:
+    #         if j not in cc_sum:
+    #             cc_sum += [j]
+    # re = [main(0, i, 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_m', 'lnd_m']) for i in cc_sum]
+
     re = [main(0, '芯片', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_m', 'lnd_m']),
           main(0, '数字经济', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_v', 'lnd_m']),
           main(0, '传媒', 400, 4, ['to_sd', 'ret_m', 'r_sd', 'r_su', 'lnd_m']),
@@ -128,4 +139,6 @@ if __name__ == '__main__':
           main(1, '多元金融', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_v', 'lnd_m']),
           ]
     re = pd.concat(re)
+
+    re = re.merge(cc[['Stkcd', '证券简称']], on='Stkcd', how='left')
     re.to_excel(output + 'select.xlsx', index=False)
