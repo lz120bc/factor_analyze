@@ -1,5 +1,5 @@
 import datetime
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -43,15 +43,18 @@ def main(gn, con_str, roll_days, stock_num, main_var):
         concept['cp'] = concept['行业'].str.contains(con_str)
     else:
         concept['cp'] = concept['所属概念板块'].str.contains(con_str)
+    data = data.merge(concept[['Stkcd', 'cp', '证券简称']], how='left', on='Stkcd')
+    data = data[data['cp'] == 1]  # 筛选行业
+    data = data[~data['证券简称'].str.contains('ST')]
 
     # iFinD
     # concept = pd.read_csv(data_save + '概念.csv')
     # concept['Stkcd'] = concept['股票代码'].str[:6].astype('int')
     # concept['cp'] = concept['所属概念'].str.contains(con_str)
+    # data = data.merge(concept[['Stkcd', 'cp', '股票简称']], how='left', on='Stkcd')
+    # data = data[data['cp'] == 1]  # 筛选行业
+    # data = data[~data['股票简称'].str.contains('ST')]
 
-    data = data.merge(concept[['Stkcd', 'cp', '证券简称']], how='left', on='Stkcd')
-    data = data[data['cp'] == 1]  # 筛选行业
-    data = data[~data['证券简称'].str.contains('ST')]
     data = data.fillna(0)
     date = data['ym']
     date = date.drop_duplicates()
@@ -107,6 +110,7 @@ def main(gn, con_str, roll_days, stock_num, main_var):
     results = select_arr[['Stkcd', 'w']].iloc[-stock_num:, :]
     results['板块'] = con_str
     results['r'] = syl.iloc[-1].values[0]
+    print(results)
     # 绘图略
     # syl.plot(figsize=(18, 8), ylim=[0, 6])
     # plt.savefig('si.png')
@@ -115,15 +119,21 @@ def main(gn, con_str, roll_days, stock_num, main_var):
 
 
 if __name__ == '__main__':
-    cc = pd.read_excel(data_save + 'concept.xlsx', sheet_name=0)
-    cc['Stkcd'] = cc['证券代码'].str[:6].astype('int')
-    # cc_sum = []
-    # for i in cc['所属概念板块'].to_list():
-    #     s = re.split(";", str(i))
-    #     for j in s:
-    #         if j not in cc_sum:
-    #             cc_sum += [j]
-    # re = [main(0, i, 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_m', 'lnd_m']) for i in cc_sum]
+
+    cc = pd.read_csv(data_save + '概念.csv')
+    cc['Stkcd'] = cc[cc.columns[0]].str[:6].astype('int')
+    # cc_sum = ['MSCI', '6G']
+    # # for i in cc['所属概念'].to_list():
+    # #     s = re.split(";", str(i))
+    # #     for j in s:
+    # #         if j not in cc_sum:
+    # #             cc_sum += [j]
+    # re = []
+    # for i in cc_sum:
+    #     try:
+    #         re.append(main(0, i, 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_m', 'lnd_m']))
+    #     except:
+    #         print(i)
 
     re = [main(0, '芯片', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_m', 'lnd_m']),
           main(0, '数字经济', 200, 4, ['to_sd', 'ret_m', 'r_sd', 'r_v', 'lnd_m']),
@@ -140,5 +150,5 @@ if __name__ == '__main__':
           ]
     re = pd.concat(re)
 
-    re = re.merge(cc[['Stkcd', '证券简称']], on='Stkcd', how='left')
+    re = re.merge(cc[['Stkcd', '股票简称']], on='Stkcd', how='left')
     re.to_excel(output + 'select.xlsx', index=False)
